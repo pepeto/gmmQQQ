@@ -1,0 +1,6 @@
+pandas
+pandas-datareader
+numpy
+scikit-learn
+plotly
+TA-Lib
