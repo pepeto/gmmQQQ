@@ -12,7 +12,7 @@ import talib
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="QQQ GMM Regimes", layout="wide")
-st.title("QQQ Regime Inference with GMM (Stooq, Original Features)")
+st.title("QQQ Regime Inference with GMM (Stooq)")
 
 # ---------- Sidebar: parameters ----------
 st.sidebar.header("GMM Parameters")
