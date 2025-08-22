@@ -126,9 +126,9 @@ is_bullish = (last_component == bull_label)
 st.subheader("Coverage Check – FEATURES")
 st.write(f"**Feature range**: {aligned_index[0].date()} → {aligned_index[-1].date()} (rows={aligned_index.shape[0]})")
 
-st.subheader("Last Point")
-st.write(f"**{last_ts.date()}** | Close={last_close:.2f} | bull_label={bull_label} | "
-         f"bull_prob={bull_probability:.4f} | bullish={is_bullish}")
+# st.subheader("Last Point")
+# st.write(f"**{last_ts.date()}** | Close={last_close:.2f} | bull_label={bull_label} | "
+#          f"bull_prob={bull_probability:.4f} | bullish={is_bullish}")
 
 # ---------- 5) Plotly SCATTER in dark mode with log Y – colored by bull probability ----------
 # Visual filter: chart starts at 2020-01-01 (training remains full-history)
