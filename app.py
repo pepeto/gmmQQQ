@@ -1,4 +1,5 @@
 # Streamlit app: QQQ full-history (Stooq) → original features → GMM → dark Plotly SCATTER (log Y)
+# Graph starts at 2020 and is taller; model still trains on full history.
 # Comments in English; no try/except; no .iloc.
 
 import numpy as np
@@ -11,11 +12,11 @@ import talib
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="QQQ GMM Regimes", layout="wide")
-st.title("QQQ Regime Inference with GMM (Stooq)")
+st.title("QQQ Regime Inference with GMM (Stooq, Original Features)")
 
-# ---------- Sidebar: parameters (fixed to your request, but visible) ----------
+# ---------- Sidebar: parameters ----------
 st.sidebar.header("GMM Parameters")
-n_components = 2  # minimal assumption consistent with previous examples
+n_components = 2
 params = {
     "cov": "tied",
     "tol": 0.0027360784448994865,
@@ -24,11 +25,11 @@ params = {
 }
 st.sidebar.write(params)
 
-# ---------- 1) Fetch from two sources and choose earliest coverage (no try/except) ----------
+# ---------- 1) Fetch from two sources and choose earliest coverage ----------
 @st.cache_data(show_spinner=False)
 def fetch_stooq_full():
-    symbol_reader = "QQQ.US"                 # explicit US listing for datareader
-    symbol_csv    = "qqq.us"                 # CSV endpoint symbol at stooq
+    symbol_reader = "QQQ.US"
+    symbol_csv    = "qqq.us"
     start_early   = pd.Timestamp("1900-01-01")
 
     dr_df = DataReader(symbol_reader, "stooq", start=start_early).sort_index()
@@ -72,11 +73,10 @@ with col3:
     st.write(f"**Chosen source**: {chosen}")
 st.write(f"**Used raw range**: {first_raw_date.date()} → {last_raw_date.date()} (rows={price_df.shape[0]})")
 
-# Enforce inception year 1999
+# Enforce inception year 1999 (dataset level)
 assert first_raw_date.year == 1999, f"Expected first year 1999; got {first_raw_date.date()}"
 
 # ---------- 3) Original feature engineering (matches your GMM.py) ----------
-# Features: log_returns, ROC(5), WILLR(38), n_wma = Close/WMA(51) - 1
 log_returns = np.log(price_df["Close"]).diff()
 
 high_np  = np.ascontiguousarray(price_df["High"].to_numpy(dtype=np.float64))
@@ -132,29 +132,40 @@ is_bullish = (last_component == bull_label)
 
 st.subheader("Coverage Check – FEATURES")
 st.write(f"**Feature range**: {aligned_index[0].date()} → {aligned_index[-1].date()} (rows={aligned_index.shape[0]})")
-st.write("**Warm-up bars**: ~51 (from WMA(51))")
+# st.write("**Warm-up bars**: ~51 (from WMA(51))")
 
 st.subheader("Last Point")
-st.write(f"**{last_ts.date()}** | Close={last_close:.2f} | "
-         f"bull_prob={bull_probability:.4f} | bullish={is_bullish}")
+st.write(f"**{last_ts.date()}** | Close={last_close:.2f} | component={last_component} | "
+         f"bull_label={bull_label} | bull_prob={bull_probability:.4f} | bullish={is_bullish}")
 
 # ---------- 5) Plotly SCATTER in dark mode with log Y ----------
-y_bull = close_aligned.where(is_bull, other=np.nan)
-y_bear = close_aligned.where(is_bear, other=np.nan)
+# Visual filter: start chart at 2020-01-01 (training remains full-history)
+plot_start = pd.Timestamp("2020-01-01")
+mask_plot = aligned_index >= plot_start
+index_plot = aligned_index[mask_plot]
+close_plot = close_aligned.loc[index_plot]
+
+is_bull_plot = is_bull[mask_plot]
+is_bear_plot = ~is_bull_plot
+
+y_bull_plot = close_plot.where(is_bull_plot, other=np.nan)
+y_bear_plot = close_plot.where(is_bear_plot, other=np.nan)
 
 fig = go.Figure()
 fig.add_trace(go.Scatter(
-    x=aligned_index, y=y_bull,
+    x=index_plot, y=y_bull_plot,
     mode="markers",
     name="Uptrend (bull)",
     marker=dict(color="green", size=4, opacity=0.85)
 ))
 fig.add_trace(go.Scatter(
-    x=aligned_index, y=y_bear,
+    x=index_plot, y=y_bear_plot,
     mode="markers",
     name="Downtrend (bear)",
     marker=dict(color="red", size=4, opacity=0.85)
 ))
+
+# Last point marker (will be inside the plot range if last date >= 2020)
 fig.add_trace(go.Scatter(
     x=[last_ts], y=[last_close],
     mode="markers",
@@ -168,12 +179,13 @@ fig.update_layout(
     yaxis_title="Close (log scale)",
     legend_title="Regime",
     hovermode="x unified",
-    template="plotly_dark"
+    template="plotly_dark",
+    height=900   # <-- taller figure
 )
 fig.update_yaxes(type="log")
 
 st.plotly_chart(fig, use_container_width=True)
 
-# Optional tail preview
-# st.subheader("Tail of Price Data (Aligned to Features)")
-# st.dataframe(close_aligned.tail(10).to_frame("Close"))
+# Optional tail preview of plotted data
+st.subheader("Tail of Price Data (Plotted Slice since 2020)")
+st.dataframe(close_plot.tail(10).to_frame("Close"))
