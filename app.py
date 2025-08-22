@@ -11,7 +11,7 @@ import talib
 import plotly.graph_objects as go
 
 st.set_page_config(page_title="QQQ GMM Regimes", layout="wide")
-st.title("QQQ Regime Inference with GMM (Stooq, Original Features)")
+st.title("QQQ Regime Inference with GMM (Stooq)")
 
 # ---------- Sidebar: parameters (fixed to your request, but visible) ----------
 st.sidebar.header("GMM Parameters")
@@ -135,8 +135,8 @@ st.write(f"**Feature range**: {aligned_index[0].date()} → {aligned_index[-1].d
 st.write("**Warm-up bars**: ~51 (from WMA(51))")
 
 st.subheader("Last Point")
-st.write(f"**{last_ts.date()}** | Close={last_close:.2f} | component={last_component} | "
-         f"bull_label={bull_label} | bull_prob={bull_probability:.4f} | bullish={is_bullish}")
+st.write(f"**{last_ts.date()}** | Close={last_close:.2f} | "
+         f"bull_prob={bull_probability:.4f} | bullish={is_bullish}")
 
 # ---------- 5) Plotly SCATTER in dark mode with log Y ----------
 y_bull = close_aligned.where(is_bull, other=np.nan)
@@ -175,5 +175,5 @@ fig.update_yaxes(type="log")
 st.plotly_chart(fig, use_container_width=True)
 
 # Optional tail preview
-st.subheader("Tail of Price Data (Aligned to Features)")
-st.dataframe(close_aligned.tail(10).to_frame("Close"))
+# st.subheader("Tail of Price Data (Aligned to Features)")
+# st.dataframe(close_aligned.tail(10).to_frame("Close"))
